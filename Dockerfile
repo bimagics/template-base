@@ -5,7 +5,8 @@
 FROM node:20-slim AS build
 WORKDIR /app
 COPY package*.json ./
-RUN npm ci
+# Use npm install as no package-lock is present
+RUN npm install
 COPY . .
 RUN npm run build
 
@@ -15,7 +16,7 @@ WORKDIR /app
 ENV NODE_ENV=production
 
 COPY package*.json ./
-RUN npm ci --omit=dev
+RUN npm install --omit=dev
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/public ./public
 
