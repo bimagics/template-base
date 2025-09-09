@@ -63,7 +63,11 @@ jobs:
 
       - name: Patch firebase.json to target correct service
         run: |
-          jq '.hosting.rewrites[0].run.serviceId = "${{ steps.target.outputs.service_id }}"' firebase.json > firebase.tmp.json && mv firebase.tmp.json firebase.json
+          # This command finds the correct object in the 'hosting' array where the 'site' key matches our target
+          # and then updates the 'serviceId' within that specific object's rewrites.
+          jq '(.hosting[] | select(.site == "${{ steps.target.outputs.hosting_site }}").rewrites[] | select(.source == "/api/**").run.serviceId) |= "${{ steps.target.outputs.service_id }}"' firebase.json > firebase.tmp.json && mv firebase.tmp.json firebase.json
+          echo "Patched firebase.json:"
+          cat firebase.json
 
       - name: Install Firebase CLI
         run: npm install -g firebase-tools
