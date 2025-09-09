@@ -1,114 +1,73 @@
-<!--
-AI-PROMPT-METADATA:
-{
-"project_name": "{{PROJECT_DISPLAY_NAME}}",
-"project_id": "{{PROJECT_ID}}",
-"version": "1.0.0",
-"primary_language": "typescript",
-"frameworks": ["nodejs", "express"],
-"platform": "gcp",
-"hosting": ["google_cloud_run", "firebase_hosting"],
-"ci_cd": "github_actions",
-"key_technologies": ["docker", "serverless", "workload_identity_federation"]
-}
--->
+# {{PROJECT_DISPLAY_NAME}} 🚀
 
-{{PROJECT_DISPLAY_NAME}} 🚀
-1. Project Overview
-Welcome to {{PROJECT_DISPLAY_NAME}}! This repository contains a fully functional, production-ready application scaffolded by the WIZBI Control Plane.
+## 1. Project Overview & Operating Principles
 
-This project is a standard Node.js/Express application written in TypeScript. It is designed to be deployed as a containerized service on Google Cloud Run, with its frontend assets and routing handled by Firebase Hosting.
+Welcome to **{{PROJECT_DISPLAY_NAME}}**. This repository is a self-contained, production-ready application scaffolded and managed by the **WIZBI Platform**.
 
-The entire infrastructure, including the GCP project, CI/CD pipeline, and necessary permissions, has been automatically provisioned. This document provides all the context needed for developers and AI assistants to understand, maintain, and extend this project.
+**Critical Operating Principle:** This project adheres to a **100% Cloud-Native and AI-Driven development workflow**. There is no local development environment. All code modifications are intended to be executed directly in the GitHub repository, with deployments handled automatically by the integrated CI/CD pipeline. This entire process is designed to be orchestrated by human developers in collaboration with AI assistants.
 
-2. Core Architecture & Principles
-This repository follows a modern, secure, and scalable serverless architecture.
+This document serves as the primary operational guide for any developer or AI model interacting with this repository.
 
-Backend: A lightweight Express.js server located in the src/ directory. It serves a simple health check API endpoint. This is the core of your application logic.
+---
 
-Frontend: A minimal index.html is located in the public/ directory. This is served globally by the Firebase Hosting CDN.
+## 2. Core Architecture
 
-Deployment: The application is containerized using the provided Dockerfile. The CI/CD pipeline in .github/workflows/deploy.yml builds and pushes this container to Google Artifact Registry and then deploys it to Cloud Run.
+This repository is built on a modern, secure, and scalable serverless architecture.
 
-Routing: Firebase Hosting is configured via firebase.json to serve the static content from public/ and rewrite all requests starting with /api/ to the private Cloud Run service. This provides a single, unified domain for both frontend and backend.
+-   **Backend:** A lightweight Express.js server in the `src/` directory. This is the heart of your application's logic.
+-   **Frontend:** Static assets are served from the `public/` directory via the Firebase Hosting CDN.
+-   **Deployment:** The application is containerized via the `Dockerfile`. The CI/CD pipeline in `.github/workflows/deploy.yml` builds, pushes, and deploys this container to a private Google Cloud Run service.
+-   **Routing & Security:** Firebase Hosting (`firebase.json`) rewrites all `/api/**` requests to the **private** Cloud Run service. The Cloud Run service is not exposed to the public internet; access is securely managed via IAM, making Firebase Hosting the sole entry point.
 
-Security:
+---
 
-The Cloud Run service is private by default and does not accept unauthenticated traffic from the public internet.
+## 3. The AI-Driven Development & Deployment Workflow
 
-The connection between Firebase Hosting and Cloud Run is secured using IAM permissions.
+All work on this repository follows a simple, Git-based, fully automated flow. **Do not attempt to deploy manually.**
 
-The CI/CD pipeline uses Workload Identity Federation (WIF) for a secure, keyless authentication to GCP. Secrets are never stored as plain text.
+#### The Workflow Cycle:
+1.  **Task Definition:** A new feature or bug fix is defined (e.g., "Create a new API endpoint at `/api/inventory` that returns a list of products").
+2.  **Code Modification:** A developer or an AI assistant modifies the relevant files (e.g., `src/index.ts`) and commits the changes directly to a branch in this GitHub repository.
+3.  **Deployment Trigger:** The `git push` command is the sole trigger for deployment.
+    -   **Push to `dev` branch:** Automatically deploys the changes to the **QA Environment**.
+    -   **Merge to `main` branch:** Automatically deploys the changes to the **Production Environment**.
+4.  **Verification:** The success or failure of the deployment can be monitored in the "Actions" tab of this GitHub repository. The live application should be tested on its dedicated QA or Production URL.
 
-3. How to Work with This Repository
-This project is set up for a seamless Git-based workflow. You do not need to manually deploy anything.
+### Example Task: Adding a New API Endpoint
 
-Deployment Workflow
-The CI/CD pipeline is triggered automatically on every push to the main and dev branches.
+**Objective:** Create an endpoint at `/api/status`.
 
-Production Environment:
+**Action:** An AI assistant would be instructed to perform the following changes:
 
-Trigger: Push or merge commits to the main branch.
+1.  **Navigate to `src/index.ts`.**
+2.  **Add the following code block:**
+    ```typescript
+    app.get('/api/status', (req, res) => {
+      res.json({ deployed_at: new Date().toISOString() });
+    });
+    ```
+3.  **Commit the change with a descriptive message:** "feat: add /api/status endpoint".
+4.  **Push the commit to the `dev` branch.**
 
-Action: The GitHub Actions workflow deploys the application to the production Cloud Run service and Firebase Hosting site.
+The CI/CD pipeline will then automatically deploy this change to the QA environment for verification.
 
-QA Environment:
+---
 
-Trigger: Push or merge commits to the dev branch.
+## 4. Key Files and Directories for AI Assistants
 
-Action: The workflow deploys the application to a separate, isolated QA environment (Cloud Run service and Firebase Hosting site).
+To effectively assist with this project, focus your modifications on these key areas:
 
-Local Development
-To run the server on your local machine:
+-   **`src/index.ts`:** **Primary file for backend logic.** All API routes are defined here. Modify this file to add or change application behavior.
+-   **`public/`:** Contains all static frontend assets (HTML, CSS, JS). Modify files here to change the user-facing interface.
+-   **`package.json`:** Project dependencies. To add a new dependency, instruct to add it here and the CI/CD pipeline will handle the installation.
+-   **`Dockerfile`:** Defines the container build process. Do not modify unless there's a need for system-level packages or advanced build steps.
+-   **`.github/workflows/deploy.yml`:** Defines the CI/CD pipeline. This is managed by the WIZBI platform and **should not be modified**.
+-   **`firebase.json`:** Configures Firebase Hosting. Can be modified to add new rewrite rules for more complex routing.
 
-Prerequisites:
+---
 
-Node.js (v20 or later)
+## 5. Project Vitals
 
-npm or yarn
-
-Install Dependencies:
-
-npm install
-
-Run the Development Server:
-
-npm run dev
-
-This command starts the server on http://localhost:8080 using ts-node-dev, which provides hot-reloading on file changes.
-
-Adding New API Endpoints
-To add a new API endpoint, for example /api/users:
-
-Open src/index.ts.
-
-Add a new Express route handler:
-
-app.get('/api/users', (req, res) => {
-  // Your logic here
-  res.json([{ id: 1, name: 'Test User' }]);
-});
-
-Commit and push your changes to the dev branch to see them live in the QA environment.
-
-4. Key Files and Directories for AI Assistants
-To effectively assist with this project, focus on the following files:
-
-src/index.ts: The main entry point for the backend server. All API routes are defined here. This is the primary file to modify when adding or changing backend functionality.
-
-public/: This directory contains all static frontend assets (HTML, CSS, JavaScript). Modify files here to change the user interface.
-
-package.json: Defines all project dependencies. Use npm install <package-name> to add new dependencies.
-
-Dockerfile: Defines the container build process. It should not need changes unless you have advanced requirements (e.g., installing system-level packages).
-
-.github/workflows/deploy.yml: Defines the CI/CD pipeline. This file is managed by the WIZBI platform and should typically not be modified manually.
-
-firebase.json: Configures Firebase Hosting and the rewrite rules to Cloud Run. Adding new rewrite rules might be necessary for advanced use cases.
-
-5. Project Information
-Project Name: {{PROJECT_DISPLAY_NAME}}
-
-WIZBI Project ID: {{PROJECT_ID}}
-
-GCP Region: {{GCP_REGION}}
+-   **Project Name:** `{{PROJECT_DISPLAY_NAME}}`
+-   **WIZBI Project ID:** `{{PROJECT_ID}}`
+-   **GCP Region:** `{{GCP_REGION}}`
