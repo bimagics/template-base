@@ -1,0 +1,72 @@
+name: Deploy Project
+
+on:
+  push:
+    branches: [ "dev", "main" ]
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  GCP_REGION: ${{ secrets.GCP_REGION || 'europe-west1' }}
+  AR_REPO: "wizbi"
+  IMAGE_NAME: ${{ github.event.repository.name }}
+
+jobs:
+  build-and-deploy:
+    name: Build & Deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Auth to GCP (WIF)
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+          service_account: ${{ secrets.DEPLOYER_SA }}
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+
+      - name: Setup gcloud
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker authentication
+        run: gcloud auth configure-docker "${{ env.GCP_REGION }}-docker.pkg.dev"
+
+      - name: Build and Push Docker Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ env.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ env.AR_REPO }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+
+      - name: Decide Target Service and Hosting Site
+        id: target
+        run: |
+          if [[ "${GITHUB_REF_NAME}" == "dev" ]]; then
+            echo "service_id=${{ github.event.repository.name }}-service-qa" >> $GITHUB_OUTPUT
+            echo "hosting_site=${{ github.event.repository.name }}-qa" >> $GITHUB_OUTPUT
+          else
+            echo "service_id=${{ github.event.repository.name }}-service" >> $GITHUB_OUTPUT
+            echo "hosting_site=${{ github.event.repository.name }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Deploy to Cloud Run (private)
+        run: |
+          gcloud run deploy "${{ steps.target.outputs.service_id }}" \
+            --image "${{ env.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ env.AR_REPO }}/${{ env.IMAGE_NAME }}:${{ github.sha }}" \
+            --region "${{ env.GCP_REGION }}" \
+            --no-allow-unauthenticated \
+            --project "${{ secrets.GCP_PROJECT_ID }}"
+
+      - name: Install Firebase CLI
+        run: npm install -g firebase-tools
+
+      - name: Deploy to Firebase Hosting
+        run: |
+          firebase deploy \
+            --only hosting:${{ steps.target.outputs.hosting_site }} \
+            --project ${{ secrets.GCP_PROJECT_ID }} \
+            --non-interactive
