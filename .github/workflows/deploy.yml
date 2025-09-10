@@ -61,6 +61,20 @@ jobs:
             --no-allow-unauthenticated \
             --project "${{ secrets.GCP_PROJECT_ID }}"
 
+      # --- 🚀 NEW STEP TO GRANT PERMISSIONS ---
+      - name: Grant Firebase Hosting Invoker Role
+        run: |
+          echo "Granting Cloud Run Invoker role to Firebase Hosting SA..."
+          PROJECT_NUMBER=$(gcloud projects describe ${{ secrets.GCP_PROJECT_ID }} --format='value(projectNumber)')
+          FIREBASE_SA="serviceAccount:service-${PROJECT_NUMBER}@gcp-sa-firebasehosting.iam.gserviceaccount.com"
+          
+          gcloud run services add-iam-policy-binding "${{ steps.target.outputs.service_id }}" \
+            --member="${FIREBASE_SA}" \
+            --role="roles/run.invoker" \
+            --region "${{ env.GCP_REGION }}" \
+            --project "${{ secrets.GCP_PROJECT_ID }}"
+          echo "Permissions granted successfully."
+
       - name: Patch firebase.json to target correct service
         run: |
           # This command finds the correct object in the 'hosting' array where the 'site' key matches our target
