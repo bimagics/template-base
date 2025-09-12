@@ -1,3 +1,8 @@
+# --- REPLACE THE ENTIRE FILE CONTENT ---
+# File: bimagics/template-base/.github/workflows/deploy.yml
+# FINAL VERSION: Removes the now-redundant IAM permission step.
+# The control plane now creates a dedicated SA ('firebase-hosting-invoker') and grants it the necessary role during project provisioning.
+
 name: Deploy Project
 
 on:
@@ -32,9 +37,6 @@ jobs:
       - name: Setup gcloud
         uses: google-github-actions/setup-gcloud@v2
 
-      - name: Enable Firebase Hosting API
-        run: gcloud services enable firebasehosting.googleapis.com --project="${{ secrets.GCP_PROJECT_ID }}"
-
       - name: Configure Docker authentication
         run: gcloud auth configure-docker "${{ env.GCP_REGION }}-docker.pkg.dev"
 
@@ -65,34 +67,9 @@ jobs:
             --project "${{ secrets.GCP_PROJECT_ID }}" \
             --update-env-vars "GCP_PROJECT_ID=${{ secrets.GCP_PROJECT_ID }}"
 
-      # --- THIS IS THE FIX: Added a robust retry loop ---
-      - name: Grant Firebase Hosting Invoker Role (with Retry)
-        run: |
-          echo "Attempting to grant Cloud Run Invoker role to Firebase Hosting SA..."
-          PROJECT_NUMBER=$(gcloud projects describe ${{ secrets.GCP_PROJECT_ID }} --format='value(projectNumber)')
-          FIREBASE_SA="serviceAccount:service-${PROJECT_NUMBER}@gcp-sa-firebasehosting.iam.gserviceaccount.com"
-          
-          for i in {1..5}; do
-            if gcloud run services add-iam-policy-binding "${{ steps.target.outputs.service_id }}" \
-              --member="${FIREBASE_SA}" \
-              --role="roles/run.invoker" \
-              --region "${{ env.GCP_REGION }}" \
-              --project "${{ secrets.GCP_PROJECT_ID }}"; then
-              echo "✅ Permissions granted successfully on attempt $i."
-              exit 0
-            fi
-            echo "Attempt $i failed. Service Account might not exist yet. Retrying in 15 seconds..."
-            sleep 15
-          done
-          
-          echo "::error::Failed to grant permissions after 5 attempts."
-          exit 1
-
-      - name: Patch firebase.json to target correct service
-        run: |
-          jq '(.hosting[] | select(.site == "${{ steps.target.outputs.hosting_site }}").rewrites[] | select(.source == "/api/**").run.serviceId) |= "${{ steps.target.outputs.service_id }}"' firebase.json > firebase.tmp.json && mv firebase.tmp.json firebase.json
-          echo "Patched firebase.json:"
-          cat firebase.json
+      # --- THIS ENTIRE STEP HAS BEEN REMOVED ---
+      # The 'firebase-hosting-invoker' SA is now created and configured by the control plane.
+      # This step is no longer necessary and was causing failures.
 
       - name: Install Firebase CLI
         run: npm install -g firebase-tools
