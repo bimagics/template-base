@@ -32,6 +32,10 @@ jobs:
       - name: Setup gcloud
         uses: google-github-actions/setup-gcloud@v2
 
+      # --- ✅ NEW STEP TO ENSURE FIREBASE SA EXISTS ---
+      - name: Enable Firebase Hosting API
+        run: gcloud services enable firebasehosting.googleapis.com --project="${{ secrets.GCP_PROJECT_ID }}"
+
       - name: Configure Docker authentication
         run: gcloud auth configure-docker "${{ env.GCP_REGION }}-docker.pkg.dev"
 
@@ -59,9 +63,9 @@ jobs:
             --image "${{ env.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ env.AR_REPO }}/${{ env.IMAGE_NAME }}:${{ github.sha }}" \
             --region "${{ env.GCP_REGION }}" \
             --no-allow-unauthenticated \
-            --project "${{ secrets.GCP_PROJECT_ID }}"
+            --project "${{ secrets.GCP_PROJECT_ID }}" \
+            --update-env-vars "GCP_PROJECT_ID=${{ secrets.GCP_PROJECT_ID }}"
 
-      # --- 🚀 NEW STEP TO GRANT PERMISSIONS ---
       - name: Grant Firebase Hosting Invoker Role
         run: |
           echo "Granting Cloud Run Invoker role to Firebase Hosting SA..."
