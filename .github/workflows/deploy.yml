@@ -32,7 +32,6 @@ jobs:
       - name: Setup gcloud
         uses: google-github-actions/setup-gcloud@v2
 
-      # --- ✅ NEW STEP TO ENSURE FIREBASE SA EXISTS ---
       - name: Enable Firebase Hosting API
         run: gcloud services enable firebasehosting.googleapis.com --project="${{ secrets.GCP_PROJECT_ID }}"
 
@@ -81,8 +80,6 @@ jobs:
 
       - name: Patch firebase.json to target correct service
         run: |
-          # This command finds the correct object in the 'hosting' array where the 'site' key matches our target
-          # and then updates the 'serviceId' within that specific object's rewrites.
           jq '(.hosting[] | select(.site == "${{ steps.target.outputs.hosting_site }}").rewrites[] | select(.source == "/api/**").run.serviceId) |= "${{ steps.target.outputs.service_id }}"' firebase.json > firebase.tmp.json && mv firebase.tmp.json firebase.json
           echo "Patched firebase.json:"
           cat firebase.json
