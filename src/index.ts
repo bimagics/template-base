@@ -1,18 +1,15 @@
-// --- REPLACE THE ENTIRE FILE CONTENT ---
 // File: template-base/src/index.ts
-
 import express from 'express';
+import cors from 'cors';
+import path from 'path';
+import aiRouter from './routes/ai';
 
 const app = express();
 const port = process.env.PORT || 8080;
 
 // --- Security Best Practices ---
-// Trust proxy headers (e.g., from Cloud Run's frontend)
 app.set("trust proxy", true);
-// Hide that the app is running on Express
 app.disable("x-powered-by");
-
-// Add basic security headers to all responses
 app.use((_, res, next) => {
   res.setHeader("X-Frame-Options", "DENY");
   res.setHeader("X-Content-Type-Options", "nosniff");
@@ -20,7 +17,14 @@ app.use((_, res, next) => {
   next();
 });
 
+app.use(cors()); // Enable CORS for all routes
 app.use(express.json({ limit: "1mb" }));
+
+// Serve static files for the chat frontend
+app.use(express.static(path.join(process.cwd(), 'public')));
+
+// API routes
+app.use('/api', aiRouter);
 
 // Original health endpoint
 app.get('/api/health', (_req, res) => {
