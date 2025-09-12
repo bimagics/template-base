@@ -13,7 +13,8 @@
           "source": "/api/**",
           "run": {
             "serviceId": "{{PROJECT_ID}}-service",
-            "region": "{{GCP_REGION}}"
+            "region": "{{GCP_REGION}}",
+            "serviceAccount": "firebase-hosting-invoker@{{PROJECT_ID}}.iam.gserviceaccount.com"
           }
         },
         {
@@ -35,7 +36,8 @@
           "source": "/api/**",
           "run": {
             "serviceId": "{{PROJECT_ID}}-service-qa",
-            "region": "{{GCP_REGION}}"
+            "region": "{{GCP_REGION}}",
+            "serviceAccount": "firebase-hosting-invoker@{{PROJECT_ID}}.iam.gserviceaccount.com"
           }
         },
         {
