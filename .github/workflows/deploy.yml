@@ -65,18 +65,28 @@ jobs:
             --project "${{ secrets.GCP_PROJECT_ID }}" \
             --update-env-vars "GCP_PROJECT_ID=${{ secrets.GCP_PROJECT_ID }}"
 
-      - name: Grant Firebase Hosting Invoker Role
+      # --- THIS IS THE FIX: Added a robust retry loop ---
+      - name: Grant Firebase Hosting Invoker Role (with Retry)
         run: |
-          echo "Granting Cloud Run Invoker role to Firebase Hosting SA..."
+          echo "Attempting to grant Cloud Run Invoker role to Firebase Hosting SA..."
           PROJECT_NUMBER=$(gcloud projects describe ${{ secrets.GCP_PROJECT_ID }} --format='value(projectNumber)')
           FIREBASE_SA="serviceAccount:service-${PROJECT_NUMBER}@gcp-sa-firebasehosting.iam.gserviceaccount.com"
           
-          gcloud run services add-iam-policy-binding "${{ steps.target.outputs.service_id }}" \
-            --member="${FIREBASE_SA}" \
-            --role="roles/run.invoker" \
-            --region "${{ env.GCP_REGION }}" \
-            --project "${{ secrets.GCP_PROJECT_ID }}"
-          echo "Permissions granted successfully."
+          for i in {1..5}; do
+            if gcloud run services add-iam-policy-binding "${{ steps.target.outputs.service_id }}" \
+              --member="${FIREBASE_SA}" \
+              --role="roles/run.invoker" \
+              --region "${{ env.GCP_REGION }}" \
+              --project "${{ secrets.GCP_PROJECT_ID }}"; then
+              echo "✅ Permissions granted successfully on attempt $i."
+              exit 0
+            fi
+            echo "Attempt $i failed. Service Account might not exist yet. Retrying in 15 seconds..."
+            sleep 15
+          done
+          
+          echo "::error::Failed to grant permissions after 5 attempts."
+          exit 1
 
       - name: Patch firebase.json to target correct service
         run: |
