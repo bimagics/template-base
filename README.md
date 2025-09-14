@@ -205,8 +205,3 @@ npm run dev
   * 🤖 When adding features, prefer small, well-scoped routes under `src/routes/` and reusable logic under `src/services/`.
 
 -----
-
-**{{PROJECT\_DISPLAY\_NAME}}** — a stable, secure, **AI-ready** starting point for modern cloud web apps.
-
-```
-```
