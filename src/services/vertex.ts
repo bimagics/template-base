@@ -2,8 +2,8 @@
 import { VertexAI, Part } from '@google-cloud/vertexai';
 
 const project = process.env.GCP_PROJECT_ID || '';
-const location = process.env.VERTEX_LOCATION || 'us-central1';
-const model = process.env.VERTEX_MODEL || 'gemini-1.5-flash-001';
+const location = process.env.VERTEX_LOCATION || 'europe-west1';
+const model = process.env.VERTEX_MODEL || 'gemini-2.5-flash';
 
 if (!project) {
   console.warn('[vertex] GCP_PROJECT_ID is not set; Vertex client may fail if running outside GCP.');
