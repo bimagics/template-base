@@ -181,17 +181,49 @@ curl -X POST https://{{PROJECT_ID}}-qa.web.app/api/chat \
 
 -----
 
-## 8\. Local Run (Optional)
+## 8\. Local Development
 
-Local development is supported for testing changes before pushing.
+Local development is fully supported for testing changes before pushing to QA or Production.
 
-```bash
-# Install dependencies
-npm install
+### Setup
 
-# Start the local development server
-npm run dev
-```
+1. **Install dependencies:**
+   ```bash
+   npm install
+   ```
+
+2. **Configure environment variables:**
+   
+   Copy the `.env.example` file to `.env`:
+   ```bash
+   cp .env.example .env
+   ```
+   
+   Then edit `.env` and replace the placeholders with your actual values:
+   - `{{PROJECT_ID}}` → Your GCP project ID
+   - `{{GCP_REGION}}` → Your GCP region (e.g., `europe-west1`)
+
+3. **Authenticate with Google Cloud:**
+   
+   To use Vertex AI locally, you need to authenticate with GCP:
+   ```bash
+   gcloud auth application-default login
+   ```
+   
+   This command will open a browser window for you to sign in with your Google account and grant access to your local environment.
+
+4. **Start the development server:**
+   ```bash
+   npm run dev
+   ```
+   
+   The server will start at `http://localhost:8080` (or the port specified in your `.env` file).
+
+### Notes
+
+- The `.env` file is ignored by Git (via `.gitignore`) to prevent sensitive credentials from being committed.
+- If you see a warning about `GCP_PROJECT_ID` not being set, make sure you've created your `.env` file and authenticated with `gcloud`.
+- Changes to TypeScript files will automatically reload the server thanks to `ts-node-dev`.
 
 -----
 

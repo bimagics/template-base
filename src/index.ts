@@ -1,8 +1,12 @@
 // File: template-base/src/index.ts
+import dotenv from 'dotenv';
+dotenv.config();
+
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
 import aiRouter from './routes/ai';
+import 'dotenv/config';
 
 const app = express();
 const port = process.env.PORT || 8080;

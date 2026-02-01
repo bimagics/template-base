@@ -7,6 +7,7 @@ const model = process.env.VERTEX_MODEL || 'gemini-2.5-flash';
 
 if (!project) {
   console.warn('[vertex] GCP_PROJECT_ID is not set; Vertex client may fail if running outside GCP.');
+  console.warn('[vertex] For local development, please run: gcloud auth application-default login');
 }
 
 const vertex_ai = new VertexAI({ project, location });
