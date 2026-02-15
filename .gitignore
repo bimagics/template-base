@@ -12,3 +12,12 @@ yarn-error.log*
 # Environment variables
 .env
 .env.local
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+.firebase\logs

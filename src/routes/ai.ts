@@ -1,4 +1,3 @@
-// Path: template-base/src/routes/ai.ts
 import { Router } from 'express';
 import { streamChat } from '../services/vertex';
 

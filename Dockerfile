@@ -1,12 +1,8 @@
-# --- REPLACE THE ENTIRE FILE CONTENT ---
-# File: template-base/Dockerfile
-
 # ---- Build Stage ----
 FROM node:20-slim AS build
 WORKDIR /app
 COPY package*.json ./
-# Use npm install as no package-lock is present
-RUN npm install
+RUN npm ci
 COPY . .
 RUN npm run build
 

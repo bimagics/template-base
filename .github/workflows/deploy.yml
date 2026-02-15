@@ -1,8 +1,3 @@
-# --- REPLACE THE ENTIRE FILE CONTENT ---
-# File: bimagics/template-base/.github/workflows/deploy.yml
-# FINAL VERSION: Removes the now-redundant IAM permission step.
-# The control plane now creates a dedicated SA ('firebase-hosting-invoker') and grants it the necessary role during project provisioning.
-
 name: Deploy Project
 
 on:

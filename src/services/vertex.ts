@@ -1,4 +1,3 @@
-// Path: template-base/src/services/vertex.ts
 import { VertexAI, Part } from '@google-cloud/vertexai';
 
 const project = process.env.GCP_PROJECT_ID || '';

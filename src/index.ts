@@ -1,4 +1,3 @@
-// File: template-base/src/index.ts
 import dotenv from 'dotenv';
 dotenv.config();
 
@@ -32,12 +31,12 @@ app.use('/api', aiRouter);
 
 // Original health endpoint
 app.get('/api/health', (_req, res) => {
-  res.status(200).json({ status: 'ok', message: 'Welcome to your new WIZBI Project!' });
+  res.status(200).json({ status: 'ok', message: 'Service is healthy.' });
 });
 
 // Lightweight health check for Docker/Cloud Run
 app.get("/healthz", (_req, res) => res.status(200).json({ ok: true }));
 
 app.listen(port, () => {
-  console.log(`[WIZBI Project Template]: Server is running at http://localhost:${port}`);
+  console.log(`[Server]: Running at http://localhost:${port}`);
 });
