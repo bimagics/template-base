@@ -21,7 +21,15 @@ app.use((_, res, next) => {
 });
 
 app.use(cors()); // Enable CORS for all routes
+// Serve static files for the chat frontend
+import { mountMcpServer } from './mcp';
+
+// ... (existing code)
 app.use(express.json({ limit: "1mb" }));
+
+// Mount local MCP Server for Agent operations
+mountMcpServer(app);
+
 
 // Serve static files for the chat frontend
 app.use(express.static(path.join(process.cwd(), 'public')));

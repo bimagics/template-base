@@ -10,9 +10,12 @@
   },
   "dependencies": {
     "@google-cloud/vertexai": "^1.0.0",
+    "@modelcontextprotocol/sdk": "^1.27.1",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
-    "express": "^4.19.2"
+    "express": "^4.19.2",
+    "googleapis": "^171.4.0",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@types/cors": "^2.8.17",
