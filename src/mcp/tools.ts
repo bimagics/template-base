@@ -1,6 +1,6 @@
 // src/mcp/tools.ts
 // MCP Tools for the local project environment.
-// Since this runs INSIDE the Cloud Run container of the project, 
+// Since this runs INSIDE the Cloud Run container of the project,
 // Application Default Credentials (ADC) automatically authenticate all GCP requests.
 
 import { google } from 'googleapis';
@@ -74,6 +74,45 @@ export function registerTools(server: McpServer): void {
         }
     );
 
+    server.tool(
+        'get_service_logs',
+        'Query Cloud Run service-specific logs for THIS project. Filters to only Cloud Run revision logs.',
+        {
+            severity: z.string().optional().describe('Minimum severity level: DEFAULT, DEBUG, INFO, NOTICE, WARNING, ERROR, CRITICAL, ALERT, EMERGENCY (default: INFO)'),
+            limit: z.string().optional().describe('Max entries to return (default: 30, max: 100)'),
+        },
+        async ({ severity, limit }) => {
+            if (!GCP_PROJECT_ID) return { content: [{ type: 'text' as const, text: 'GCP Project ID not found.' }], isError: true };
+
+            try {
+                const auth = new google.auth.GoogleAuth({ scopes: ['https://www.googleapis.com/auth/cloud-platform'] });
+                const logging = google.logging({ version: 'v2', auth });
+                const pageSize = Math.min(parseInt(limit || '30', 10) || 30, 100);
+                const sev = severity || 'INFO';
+                const serviceName = process.env.K_SERVICE || `${GCP_PROJECT_ID}-service`;
+
+                const res = await logging.entries.list({
+                    requestBody: {
+                        resourceNames: [`projects/${GCP_PROJECT_ID}`],
+                        filter: `resource.type="cloud_run_revision" AND resource.labels.service_name="${serviceName}" AND severity>=${sev}`,
+                        orderBy: 'timestamp desc',
+                        pageSize,
+                    },
+                });
+
+                const entries = (res.data.entries || []).map((e: any) => ({
+                    timestamp: e.timestamp,
+                    severity: e.severity,
+                    message: e.textPayload || e.jsonPayload?.message || JSON.stringify(e.jsonPayload || {}).substring(0, 500),
+                    labels: e.labels,
+                }));
+                return { content: [{ type: 'text' as const, text: JSON.stringify(entries, null, 2) }] };
+            } catch (e: any) {
+                return { content: [{ type: 'text' as const, text: `Error: ${e.message}` }], isError: true };
+            }
+        }
+    );
+
     // ─── Firestore ──────────────────────────────────────────────
 
     server.tool(
@@ -127,65 +166,26 @@ export function registerTools(server: McpServer): void {
         }
     );
 
-    // ─── Cloud Run Service Logs ─────────────────────────────────
-
-    server.tool(
-        'get_service_logs',
-        'Query Cloud Run service-specific logs for THIS project.',
-        {
-            severity: z.string().optional().describe('Minimum severity level (default: INFO). One of: DEBUG, INFO, NOTICE, WARNING, ERROR, CRITICAL'),
-            limit: z.string().optional().describe('Max entries to return (default: 30, max: 100)'),
-        },
-        async ({ severity, limit }) => {
-            if (!GCP_PROJECT_ID) return { content: [{ type: 'text' as const, text: 'GCP Project ID not found.' }], isError: true };
-
-            try {
-                const auth = new google.auth.GoogleAuth({ scopes: ['https://www.googleapis.com/auth/cloud-platform'] });
-                const logging = google.logging({ version: 'v2', auth });
-                const sev = severity || 'INFO';
-                const serviceName = process.env.K_SERVICE || `${GCP_PROJECT_ID}-service`;
-                const pageSize = Math.min(parseInt(limit || '30', 10) || 30, 100);
-
-                const res = await logging.entries.list({
-                    requestBody: {
-                        resourceNames: [`projects/${GCP_PROJECT_ID}`],
-                        filter: `resource.type="cloud_run_revision" AND resource.labels.service_name="${serviceName}" AND severity>=${sev}`,
-                        orderBy: 'timestamp desc',
-                        pageSize,
-                    },
-                });
-
-                const entries = (res.data.entries || []).map((e: any) => ({
-                    timestamp: e.timestamp,
-                    severity: e.severity,
-                    logName: e.logName?.split('/').pop(),
-                    message: e.textPayload || e.jsonPayload?.message || JSON.stringify(e.jsonPayload || {}).substring(0, 500),
-                }));
-                return { content: [{ type: 'text' as const, text: JSON.stringify(entries, null, 2) }] };
-            } catch (e: any) {
-                return { content: [{ type: 'text' as const, text: `Error: ${e.message}` }], isError: true };
-            }
-        }
-    );
-
-    // ─── Firestore Write ────────────────────────────────────────
-
     server.tool(
         'write_firestore_document',
-        'Create or update a Firestore document in THIS project.',
+        'Create or update a document in a Firestore collection in THIS project. Fields should be a JSON object with Firestore-typed values.',
         {
-            collection: z.string().describe('Collection name'),
-            documentId: z.string().optional().describe('Document ID (auto-generated if omitted)'),
-            fields: z.string().describe('JSON string of fields in Firestore value format, e.g. {"name":{"stringValue":"hello"}}'),
+            collection: z.string().describe('Collection name to write to'),
+            documentId: z.string().optional().describe('Document ID. If omitted, Firestore auto-generates one.'),
+            fields: z.string().describe('JSON object of fields to set. Use Firestore value format, e.g. {"name": {"stringValue": "hello"}, "count": {"integerValue": "42"}}'),
         },
         async ({ collection, documentId, fields }) => {
             if (!GCP_PROJECT_ID) return { content: [{ type: 'text' as const, text: 'GCP Project ID not found.' }], isError: true };
-
             try {
                 const auth = new google.auth.GoogleAuth({ scopes: ['https://www.googleapis.com/auth/cloud-platform'] });
                 const firestore = google.firestore({ version: 'v1', auth });
                 const parent = `projects/${GCP_PROJECT_ID}/databases/(default)/documents`;
-                const parsedFields = JSON.parse(fields);
+                let parsedFields: any;
+                try {
+                    parsedFields = JSON.parse(fields);
+                } catch {
+                    return { content: [{ type: 'text' as const, text: 'Error: "fields" must be valid JSON in Firestore value format.' }], isError: true };
+                }
 
                 const res = await firestore.projects.databases.documents.createDocument({
                     parent,
@@ -194,12 +194,12 @@ export function registerTools(server: McpServer): void {
                     requestBody: { fields: parsedFields },
                 });
 
-                const docId = res.data.name?.split('/').pop();
                 return {
                     content: [{
-                        type: 'text' as const, text: JSON.stringify({
+                        type: 'text' as const,
+                        text: JSON.stringify({
                             success: true,
-                            documentId: docId,
+                            documentId: res.data.name?.split('/').pop(),
                             createTime: res.data.createTime,
                             updateTime: res.data.updateTime,
                         }, null, 2)
@@ -211,18 +211,15 @@ export function registerTools(server: McpServer): void {
         }
     );
 
-    // ─── Firestore Delete ───────────────────────────────────────
-
     server.tool(
         'delete_firestore_document',
-        'Delete a Firestore document in THIS project.',
+        'Delete a document from a Firestore collection in THIS project.',
         {
             collection: z.string().describe('Collection name'),
             documentId: z.string().describe('Document ID to delete'),
         },
         async ({ collection, documentId }) => {
             if (!GCP_PROJECT_ID) return { content: [{ type: 'text' as const, text: 'GCP Project ID not found.' }], isError: true };
-
             try {
                 const auth = new google.auth.GoogleAuth({ scopes: ['https://www.googleapis.com/auth/cloud-platform'] });
                 const firestore = google.firestore({ version: 'v1', auth });
@@ -232,10 +229,8 @@ export function registerTools(server: McpServer): void {
 
                 return {
                     content: [{
-                        type: 'text' as const, text: JSON.stringify({
-                            success: true,
-                            deletedPath: `${collection}/${documentId}`,
-                        }, null, 2)
+                        type: 'text' as const,
+                        text: JSON.stringify({ success: true, deleted: `${collection}/${documentId}` }, null, 2)
                     }]
                 };
             } catch (e: any) {
@@ -244,39 +239,40 @@ export function registerTools(server: McpServer): void {
         }
     );
 
-    // ─── Cloud Run Environment ──────────────────────────────────
+    // ─── Cloud Run ──────────────────────────────────────────────
 
     server.tool(
         'get_cloud_run_env',
-        'Read Cloud Run service environment variables for THIS project. Sensitive values are redacted.',
+        'Read the current environment variables configured on THIS Cloud Run service.',
         {},
         async () => {
             if (!GCP_PROJECT_ID) return { content: [{ type: 'text' as const, text: 'GCP Project ID not found.' }], isError: true };
-
             try {
                 const auth = new google.auth.GoogleAuth({ scopes: ['https://www.googleapis.com/auth/cloud-platform'] });
                 const run = google.run({ version: 'v2', auth });
+                const region = process.env.GCP_REGION || 'europe-west1';
                 const serviceName = process.env.K_SERVICE || `${GCP_PROJECT_ID}-service`;
-                const region = process.env.GCP_REGION || 'us-central1';
 
                 const res = await run.projects.locations.services.get({
                     name: `projects/${GCP_PROJECT_ID}/locations/${region}/services/${serviceName}`,
                 });
 
                 const containers = res.data.template?.containers || [];
-                const envVars = (containers[0]?.env || []).map((env: any) => {
-                    const name = env.name || '';
-                    const sensitive = /KEY|SECRET|TOKEN|PASSWORD/i.test(name);
-                    return {
-                        name,
-                        value: sensitive ? '***REDACTED***' : (env.value || ''),
-                    };
-                });
+                const envVars = containers.flatMap((c: any) =>
+                    (c.env || []).map((e: any) => ({
+                        name: e.name,
+                        // Mask sensitive values
+                        value: (e.name || '').match(/KEY|SECRET|TOKEN|PASSWORD/i)
+                            ? '***REDACTED***'
+                            : e.value || '(from secret ref)',
+                    }))
+                );
 
                 return {
                     content: [{
-                        type: 'text' as const, text: JSON.stringify({
-                            serviceName,
+                        type: 'text' as const,
+                        text: JSON.stringify({
+                            service: serviceName,
                             region,
                             envVars,
                         }, null, 2)
