@@ -60,7 +60,7 @@ jobs:
             --region "${{ env.GCP_REGION }}" \
             --no-allow-unauthenticated \
             --project "${{ secrets.GCP_PROJECT_ID }}" \
-            --update-env-vars "GCP_PROJECT_ID=${{ secrets.GCP_PROJECT_ID }}"
+            --update-env-vars "GCP_PROJECT_ID=${{ secrets.GCP_PROJECT_ID }},GCP_REGION=${{ env.GCP_REGION }},VERTEX_LOCATION=${{ env.GCP_REGION }},MCP_API_KEY=${{ secrets.PROJECT_MCP_API_KEY }},CP_MCP_API_KEY=${{ secrets.CP_MCP_API_KEY }}"
 
       # --- THIS ENTIRE STEP HAS BEEN REMOVED ---
       # The 'firebase-hosting-invoker' SA is now created and configured by the control plane.
