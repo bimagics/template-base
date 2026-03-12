@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "firebase": {
+      "command": "npx",
+      "args": ["-y", "@firebase/mcp", "--project", "{{PROJECT_ID}}"]
+    },
+    "{{PROJECT_ID}}-local": {
+      "type": "sse",
+      "url": "https://{{PROJECT_ID}}-qa.web.app/api/mcp/sse?key=YOUR_MCP_API_KEY"
+    },
+    "wizbi-cp": {
+      "type": "sse",
+      "url": "https://wizbi-cp.web.app/api/mcp/sse?key=YOUR_CP_API_KEY"
+    }
+  }
+}
